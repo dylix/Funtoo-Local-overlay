@@ -1,0 +1,121 @@
+diff -crB xfdesktop-4.8.1/common/xfdesktop-common.c xfdesktop-4.8.1-mine/common/xfdesktop-common.c
+*** xfdesktop-4.8.1/common/xfdesktop-common.c	2010-08-29 15:07:54.000000000 -0400
+--- xfdesktop-4.8.1-mine/common/xfdesktop-common.c	2011-02-01 09:27:28.272000002 -0500
+***************
+*** 277,283 ****
+      fd = open(filename, O_RDONLY|O_BINARY);
+      if(fd < 0)
+          return FALSE;
+!     
+      loader = gdk_pixbuf_loader_new();
+      g_signal_connect(G_OBJECT(loader), "size-prepared",
+              G_CALLBACK(pixbuf_loader_size_cb), &size_read);
+--- 277,289 ----
+      fd = open(filename, O_RDONLY|O_BINARY);
+      if(fd < 0)
+          return FALSE;
+!     /* just because we can open you doesn't mean your a real image */
+!     int status;
+!     struct stat st_buf;
+!     status = stat(filename, &st_buf);
+!     if (S_ISDIR (st_buf.st_mode))
+!         return FALSE;
+! 
+      loader = gdk_pixbuf_loader_new();
+      g_signal_connect(G_OBJECT(loader), "size-prepared",
+              G_CALLBACK(pixbuf_loader_size_cb), &size_read);
+Only in xfdesktop-4.8.1/doc/manual: html
+diff -crB xfdesktop-4.8.1/settings/main.c xfdesktop-4.8.1-mine/settings/main.c
+*** xfdesktop-4.8.1/settings/main.c	2011-01-24 21:08:59.000000000 -0500
+--- xfdesktop-4.8.1-mine/settings/main.c	2011-02-01 09:39:46.268000001 -0500
+***************
+*** 134,139 ****
+--- 134,154 ----
+      TARGET_TEXT_URI_LIST = 0,
+  };
+  
++ static char *replace_str(char *str, char *orig, char *rep)
++ {
++   static char buffer[4096];
++   char *p;
++ 
++   if(!(p = strstr(str, orig)))  // Is 'orig' even in 'str'?
++     return str;
++ 
++   strncpy(buffer, str, p-str); // Copy characters from 'str' start to 'orig' st$
++   buffer[p-str] = '\0';
++ 
++   sprintf(buffer+(p-str), "%s%s", rep, p+strlen(orig));
++ 
++   return buffer;
++ }
+  
+  /* assumes gdk lock is held on function enter, and should be held
+   * on function exit */
+***************
+*** 141,147 ****
+  xfdesktop_settings_do_single_preview(GtkTreeModel *model,
+                                       GtkTreeIter *iter)
+  {
+!     gchar *name = NULL, *new_name = NULL, *filename = NULL;
+      GdkPixbuf *pix, *pix_scaled = NULL;
+  
+      gtk_tree_model_get(model, iter,
+--- 156,162 ----
+  xfdesktop_settings_do_single_preview(GtkTreeModel *model,
+                                       GtkTreeIter *iter)
+  {
+!     gchar *name = NULL, *new_name = NULL, *filename = NULL, *cachefile = NULL;
+      GdkPixbuf *pix, *pix_scaled = NULL;
+  
+      gtk_tree_model_get(model, iter,
+***************
+*** 150,156 ****
+                         -1);
+  
+      gdk_threads_leave();
+! 
+      pix = gdk_pixbuf_new_from_file(filename, NULL);
+      g_free(filename);
+      if(pix) {
+--- 165,178 ----
+                         -1);
+  
+      gdk_threads_leave();
+!  	cachefile = replace_str(name,"<b>","");
+!  	cachefile = replace_str(cachefile,"</b>","");
+!  	cachefile = g_strdup_printf(_("%sthumb-%s"),xfce_resource_lookup(XFCE_RESOURCE_CACHE, "xfce4/"),cachefile);
+!  
+!  	if( access( cachefile, W_OK ) != -1 ) {
+!  		g_free(filename);
+!  		pix_scaled = gdk_pixbuf_new_from_file(cachefile,NULL);
+!  	} else {
+      pix = gdk_pixbuf_new_from_file(filename, NULL);
+      g_free(filename);
+      if(pix) {
+***************
+*** 168,176 ****
+--- 190,201 ----
+          height = PREVIEW_HEIGHT;
+          pix_scaled = gdk_pixbuf_scale_simple(pix, width, height,
+                                               GDK_INTERP_BILINEAR);
++ 			/* save thumb on hd */
++ 			gdk_pixbuf_save(pix_scaled, cachefile, "jpeg", NULL, "quality", "75", NULL);
+  
+          g_object_unref(G_OBJECT(pix));
+      }
++ }
+      g_free(name);
+  
+      gdk_threads_enter();
+***************
+*** 180,185 ****
+--- 205,211 ----
+                             COL_NAME, new_name,
+                             -1);
+          g_free(new_name);
++         g_free(cachefile);
+      }
+  
+      if(pix_scaled) {
+Only in xfdesktop-4.8.1: xfdesktop.spec

@@ -1,0 +1,21 @@
+Only in xfce4-notifyd-0.2.1/xfce4-notifyd: notify-dbus.h
+diff -crB xfce4-notifyd-0.2.1/xfce4-notifyd/xfce-notify-daemon.c xfce4-notifyd-0.2.1-mine/xfce4-notifyd/xfce-notify-daemon.c
+*** xfce4-notifyd-0.2.1/xfce4-notifyd/xfce-notify-daemon.c	2010-12-20 13:21:13.000000000 -0500
+--- xfce4-notifyd-0.2.1-mine/xfce4-notifyd/xfce-notify-daemon.c	2011-02-06 10:33:09.879000002 -0500
+***************
+*** 581,587 ****
+      }
+  
+      gdk_display_get_pointer(gdk_display_get_default(), &screen, &x, &y, NULL);
+!     monitor = gdk_screen_get_monitor_at_point(screen, x, y);
+      screen_n = gdk_screen_get_number (screen);
+  
+      DBG("We are on the monitor %i, screen %i", monitor, screen_n);
+--- 581,587 ----
+      }
+  
+      gdk_display_get_pointer(gdk_display_get_default(), &screen, &x, &y, NULL);
+!     monitor = 0;
+      screen_n = gdk_screen_get_number (screen);
+  
+      DBG("We are on the monitor %i, screen %i", monitor, screen_n);
